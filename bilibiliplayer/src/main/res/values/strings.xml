@@ -1,0 +1,25 @@
+<resources>
+    <string name="app_name">b站优质视频</string>
+    <string name="title_activity_fullscreen">FullscreenActivity</string>
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
+    <string name="email_address">邮箱地址</string>
+    <string name="auth_pass">授权码</string>
+    <string name="approve_hint">已认可的发件人电子邮箱列表</string>
+    <string name="share_video_hint">你分享的视频将通过以下电子邮箱同步到此设备</string>
+    <string name="approve_hint_detail">为防止垃圾邮件，仅接收已认可电子邮箱分享的视频</string>
+    <string name="add_approve_email">添加认可的电子邮箱</string>
+    <string name="delete">移除</string>
+    <string name="confirm">确认</string>
+    <string name="cancel">取消</string>
+    <string name="input_approve_email">输入认可电子邮箱</string>
+    <string name="more_settings">更多选项</string>
+    <string name="pop_server">POP3服务器</string>
+    <string name="pop_port">端口</string>
+    <string name="delete_approve_email">将要移除认可的电子邮箱%1$s</string>
+    <string name="delete_hint">删除确认</string>
+    <string name="settings">设置</string>
+    <string name="hint">提示</string>
+    <string name="setting_success">设置成功</string>
+    <string name="skip_collection_msg">跳过当前视频合集%1$s?</string>
+</resources>

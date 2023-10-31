@@ -1,0 +1,36 @@
+<resources>
+    <string name="app_name">B站优质视频分享</string>
+    <string name="set">设置</string>
+    <string name="can_not_skip">不可跳过</string>
+    <string name="share">分享</string>
+    <string name="select">选择</string>
+    <string name="video_title">视频标题</string>
+    <string name="video_address">视频地址</string>
+    <string name="email_address">电子邮箱</string>
+    <string name="send_email_hint">发送电子邮箱设置</string>
+    <string name="auth_pass">授权码</string>
+    <string name="smtp_server">smtp服务器</string>
+    <string name="smtp_port">smtp端口号</string>
+    <string name="confirm">确认</string>
+    <string name="more_settings">更多选项</string>
+    <string name="send_email_detail">你的视频将通过此电子邮箱分享出去</string>
+    <string name="target_email_hint">目标电子邮箱</string>
+    <string name="target_email_detail">你分享的视频将发送至此电子邮箱</string>
+    <string name="input_target_email_here">在此处输入目标电子邮箱地址</string>
+    <string name="settings">设置</string>
+    <string name="setting_success">设置成功</string>
+    <string name="hint">提示</string>
+    <string name="can_not_skip_explain">在设备上播放此视频时将不能跳过，同时也不能倍速和随意调整进度</string>
+    <string name="select_all">全选</string>
+    <string name="no_select">还未选择任何视频</string>
+    <string name="share_success">分享成功</string>
+    <string name="share_fail">分享失败%1$d</string>
+    <string name="delete_fail">删除失败%1$d</string>
+    <string name="cancel">取消</string>
+    <string name="share_clip_msg">
+        检测到你复制了Bilibili的视频，是否去分享\n%1$s
+    </string>
+    <string name="delete_video_msg">你将要删除此视频%1$s</string>
+    <string name="delete_multi_part_msg">，此视频合集都将被删除</string>
+    <string name="delete_success">删除成功</string>
+</resources>
