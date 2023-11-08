@@ -26,6 +26,7 @@
     <string name="share_success">分享成功</string>
     <string name="share_fail">分享失败%1$d</string>
     <string name="delete_fail">删除失败%1$d</string>
+    <string name="send_fail">发送失败%1$d</string>
     <string name="cancel">取消</string>
     <string name="share_clip_msg">
         检测到你复制了Bilibili的视频，是否去分享\n%1$s
@@ -33,4 +34,9 @@
     <string name="delete_video_msg">你将要删除此视频%1$s</string>
     <string name="delete_multi_part_msg">，此视频合集都将被删除</string>
     <string name="delete_success">删除成功</string>
+    <string name="input_search_content">输入搜索内容</string>
+    <string name="next_play">下次播放</string>
+    <string name="edit_video_title">修改视频设置</string>
+    <string name="send_success">发送成功</string>
+    <string name="sending_message">正在同步信息</string>
 </resources>

@@ -8,6 +8,8 @@ import android.os.Handler;
 import android.os.strictmode.Violation;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.View;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -27,6 +29,7 @@ import cn.autoeditor.sharelibrary.LtLog;
 import cn.autoeditor.sharelibrary.PartInfo;
 import cn.autoeditor.sharelibrary.VideoDatabase;
 import cn.autoeditor.sharelibrary.VideoInfo;
+import io.reactivex.Scheduler;
 import io.reactivex.Single;
 import io.reactivex.SingleObserver;
 import io.reactivex.android.schedulers.AndroidSchedulers;
@@ -35,6 +38,12 @@ import io.reactivex.schedulers.Schedulers;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import xyz.doikki.videocontroller.StandardVideoController;
+import xyz.doikki.videocontroller.component.CompleteView;
+import xyz.doikki.videocontroller.component.ErrorView;
+import xyz.doikki.videocontroller.component.GestureView;
+import xyz.doikki.videocontroller.component.PrepareView;
+import xyz.doikki.videocontroller.component.TitleView;
+import xyz.doikki.videocontroller.component.VodControlView;
 import xyz.doikki.videoplayer.player.BaseVideoView;
 import xyz.doikki.videoplayer.player.VideoView;
 
@@ -57,6 +66,8 @@ public class BilibiliPlayer extends AppCompatActivity implements BaseVideoView.O
     private Stack<VideoInfo> mPlayList ;
     private int mCidIndex = 0 ;
     private SharedPreferences mSharedPreferences ;
+    private TitleView mTitleView ;
+    MyVodControlView vodControlView ;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -81,14 +92,29 @@ public class BilibiliPlayer extends AppCompatActivity implements BaseVideoView.O
             mCidIndex = 0 ;
         }
         controller = new StandardVideoController(this);
-        mVideoView.setVideoController(controller); //设置控制器
 
+        mTitleView = new TitleView(this);
+        controller.addControlComponent(mTitleView);
+        controller.addControlComponent(new CompleteView(this));
+        controller.addControlComponent(new ErrorView(this));
+        controller.addControlComponent(new PrepareView(this));
+        controller.addControlComponent(new GestureView(this));
+        vodControlView = new MyVodControlView(BilibiliPlayer.this) ;
+        controller.addControlComponent(vodControlView);
+        mVideoView.setVideoController(controller); //设置控制器
         mVideoView.addOnStateChangeListener(this);
         if(mCurrentVideoInfo != null){
-            mPlayList.add(mCurrentVideoInfo) ;
             play(position);
         }
+        vodControlView.setOnNextClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startNext();
+            }
+        });
     }
+
+
 
     @Override
     protected void onPause() {
@@ -135,11 +161,12 @@ public class BilibiliPlayer extends AppCompatActivity implements BaseVideoView.O
                             }else{
                                 title = mCurrentPartInfo.title ;
                             }
-                            controller.removeAllControlComponent() ;
-                            controller.addDefaultControlComponent(title, false);
+                            mTitleView.setTitle(title);
                             mVideoView.setUrl(s, createPlayerVideoHeader(mCurrentVideoInfo.bvid));
                             mVideoView.skipPositionWhenPlay((int) (postion != 0?postion:mCurrentPartInfo.timestamp));
+                            mVideoView.startFullScreen();
                             mVideoView.start();
+                            controller.show();
                         }
                     }
 
@@ -168,23 +195,18 @@ public class BilibiliPlayer extends AppCompatActivity implements BaseVideoView.O
 
             switch (event.getKeyCode()) {
                 case KeyEvent.KEYCODE_DPAD_LEFT:
-                    break ;
+                    vodControlView.setFastforwarding(MyVodControlView.REWIND);
+                    controller.show();
+                    controller.stopFadeOut();
+                    return vodControlView.dispatchKeyEvent(event) ;
                 case KeyEvent.KEYCODE_DPAD_RIGHT:
-                    if(forwarding){
-                        break ;
+                    if(mCurrentVideoInfo != null && !mCurrentVideoInfo.skipable){
+                        return false ;
                     }
-                    forwarding = true ;
-                    mVideoView.setSpeed(2);
-//                    mHandler.postDelayed(new Runnable() {
-//                        @Override
-//                        public void run() {
-//                            if(forwarding ) {
-//                                mVideoView.seekTo(mVideoView.getCurrentPosition() + 500);
-//                            }
-//                            mHandler.postDelayed(this, 100) ;
-//                        }
-//                    },100) ;
-                    break ;
+                    vodControlView.setFastforwarding(MyVodControlView.FAST_FORWARD);
+                    controller.show();
+                    controller.stopFadeOut();
+                    return vodControlView.dispatchKeyEvent(event) ;
 
             }
             return super.dispatchKeyEvent(event) ;
@@ -204,23 +226,40 @@ public class BilibiliPlayer extends AppCompatActivity implements BaseVideoView.O
                 break ;
 
             case KeyEvent.KEYCODE_DPAD_LEFT:
-                break ;
             case KeyEvent.KEYCODE_DPAD_RIGHT:
-                Log.i(TAG, "set speed ..."+mVideoView.getSpeed()) ;
-
-                mVideoView.setSpeed(1);
-                forwarding = false ;
+                if(vodControlView.fastwarding()) {
+                    long newPosition = vodControlView.stopFastForward();
+                    mVideoView.seekTo(newPosition);
+                    controller.hide();
+                }
                 break;
             case KeyEvent.KEYCODE_MENU :
             case KeyEvent.KEYCODE_SPACE :
                 Settings.launchActivity(this) ;
+                break ;
+            case KeyEvent.KEYCODE_ENTER:
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+                if(!mVideoView.isPlaying()){
+                    mVideoView.resume();
+                }else {
+                    if (controller.isShowing()) {
+                        mVideoView.pause();
+                    } else {
+                        controller.show();
+                    }
+                }
                 break ;
         }
         return super.dispatchKeyEvent(event) ;
     }
 
     private void showSkipCollectionDialog(){
-        if(mCurrentVideoInfo != null && mCurrentVideoInfo.partInfos.size() > 1){
+        if(mCurrentVideoInfo == null){
+        }else if(mCurrentVideoInfo.partInfos.size() <= 1){
+            Toast.makeText(this, R.string.is_not_collection, Toast.LENGTH_SHORT).show();
+        }else if(!mCurrentVideoInfo.skipable){
+            Toast.makeText(this, R.string.cannot_skip, Toast.LENGTH_SHORT).show();
+        }else{
             new AlertDialog.Builder(this)
                     .setTitle(R.string.hint)
                     .setMessage(getString( R.string.skip_collection_msg,mCurrentVideoInfo.title))
@@ -231,7 +270,6 @@ public class BilibiliPlayer extends AppCompatActivity implements BaseVideoView.O
                             startNextCollection() ;
                         }
                     }).show() ;
-
         }
     }
 
@@ -242,13 +280,27 @@ public class BilibiliPlayer extends AppCompatActivity implements BaseVideoView.O
         }
         mCidIndex++ ;
         if(mCidIndex >= mCurrentVideoInfo.partInfos.size()){
+            mCurrentVideoInfo.skipable = true ;
+            mPlayList.add(mCurrentVideoInfo) ;
             mCurrentVideoInfo = mVideoDatabase.getNext(mCurrentVideoInfo.getId()) ;
             mCidIndex = 0 ;
             if(mCurrentVideoInfo == null){
                 return;
             }
-            mPlayList.add(mCurrentVideoInfo) ;
         }
+        mSharedPreferences.edit().putString(KEY_CURRENT_VIDEO, mCurrentVideoInfo.toJson()).commit();
+        mSharedPreferences.edit().putInt(KEY_CID_INDEX, mCidIndex).commit();
+        mVideoView.release();
+        play(0);
+
+    }
+    private void startNext(String bvid){
+            mPlayList.add(mCurrentVideoInfo) ;
+            mCurrentVideoInfo = mVideoDatabase.getNext(mCurrentVideoInfo.getId(), bvid) ;
+            mCidIndex = 0 ;
+            if(mCurrentVideoInfo == null){
+                return;
+            }
         mSharedPreferences.edit().putString(KEY_CURRENT_VIDEO, mCurrentVideoInfo.toJson()).commit();
         mSharedPreferences.edit().putInt(KEY_CID_INDEX, mCidIndex).commit();
         mVideoView.release();
@@ -260,12 +312,12 @@ public class BilibiliPlayer extends AppCompatActivity implements BaseVideoView.O
         if(mCurrentVideoInfo == null || !mCurrentVideoInfo.skipable){
             return;
         }
+        mPlayList.add(mCurrentVideoInfo) ;
         mCurrentVideoInfo = mVideoDatabase.getNext(mCurrentVideoInfo.getId()) ;
         mCidIndex = 0 ;
         if(mCurrentVideoInfo == null){
                 return;
         }
-        mPlayList.add(mCurrentVideoInfo) ;
         mSharedPreferences.edit().putString(KEY_CURRENT_VIDEO, mCurrentVideoInfo.toJson()).commit();
         mSharedPreferences.edit().putInt(KEY_CID_INDEX, mCidIndex).commit();
         mVideoView.release();
@@ -314,12 +366,13 @@ public class BilibiliPlayer extends AppCompatActivity implements BaseVideoView.O
             mVideoView.release();
             mCidIndex++ ;
             if(mCidIndex >= mCurrentVideoInfo.partInfos.size()){
+                mCurrentVideoInfo.skipable = true ;
+                mPlayList.add(mCurrentVideoInfo) ;
                 mCurrentVideoInfo = mVideoDatabase.getNext(mCurrentVideoInfo.getId()) ;
                 mCidIndex = 0 ;
                 if(mCurrentVideoInfo == null){
                     return;
                 }
-                mPlayList.add(mCurrentVideoInfo) ;
             }
             mSharedPreferences.edit().putString(KEY_CURRENT_VIDEO, mCurrentVideoInfo.toJson()).commit();
             mSharedPreferences.edit().putInt(KEY_CID_INDEX, mCidIndex).commit();
@@ -362,6 +415,29 @@ public class BilibiliPlayer extends AppCompatActivity implements BaseVideoView.O
 
     }
 
+    private void showNextPlayInfo(VideoInfo videoInfo){
+
+        Scheduler scheduler =  AndroidSchedulers.mainThread() ;
+
+        scheduler.scheduleDirect(new Runnable() {
+
+            @Override
+            public void run() {
+                new AlertDialog.Builder(BilibiliPlayer.this)
+                        .setTitle(R.string.hint)
+                        .setMessage(getString( R.string.new_next_play_info, videoInfo.title))
+                        .setNegativeButton(R.string.cancel,null)
+                        .setPositiveButton(R.string.confirm, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                startNext(videoInfo.bvid) ;
+                            }
+                        }).show() ;
+            }
+        });
+
+    }
+
     @Override
     public void onNewVideo(VideoInfo info) {
         LtLog.i("onNewVideo:"+info.title) ;
@@ -375,6 +451,13 @@ public class BilibiliPlayer extends AppCompatActivity implements BaseVideoView.O
                 break ;
             case VideoInfo.ACTION_DEL :
                 delHistory(info);
+                break ;
+            case VideoInfo.ACTION_EDIT :
+                if(info.nextplay) {
+                    showNextPlayInfo(info);
+                }else if(mCurrentVideoInfo != null && mCurrentVideoInfo.bvid.equals(info.bvid)){
+                    mCurrentVideoInfo.skipable = info.skipable ;
+                }
                 break ;
         }
     }

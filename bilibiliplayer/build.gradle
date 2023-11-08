@@ -5,7 +5,10 @@ plugins {
 android {
     namespace 'cn.autoeditor.bilibili'
     compileSdk 33
-
+    lintOptions{
+        checkReleaseBuilds false
+        abortOnError false
+    }
     defaultConfig {
         applicationId "cn.autoeditor.bilibili"
         minSdk 23
@@ -42,6 +45,7 @@ dependencies {
 
     implementation 'xyz.doikki.android.dkplayer:dkplayer-java:3.3.7'
     implementation 'xyz.doikki.android.dkplayer:dkplayer-ui:3.3.7'
+    implementation 'xyz.doikki.android.dkplayer:player-exo:3.3.7'
     implementation 'xyz.doikki.android.dkplayer:videocache:3.3.7'
     implementation 'xyz.doikki.android.dkplayer:player-ijk:3.3.7'
     implementation 'com.sun.mail:android-mail:1.6.2'

@@ -5,7 +5,10 @@ plugins {
 android {
     namespace 'cn.autoeditor.bilibilishare'
     compileSdk 33
-
+    lintOptions{
+        checkReleaseBuilds false
+        abortOnError false
+    }
     defaultConfig {
         applicationId "cn.autoeditor.bilibilishare"
         minSdk 24

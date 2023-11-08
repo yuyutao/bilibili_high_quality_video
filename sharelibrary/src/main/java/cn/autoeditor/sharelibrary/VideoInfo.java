@@ -14,6 +14,8 @@ public class VideoInfo {
     public static final int ACTION_ADD = 1 ;
     public static final int ACTION_DEL = 2 ;
 
+    public static final int ACTION_EDIT = 3 ;
+
     private int id ;
 
     @Expose(serialize = false)
@@ -38,6 +40,7 @@ public class VideoInfo {
     public String title ;
 
     public boolean skipable = true ;
+    public boolean nextplay = false ;
     public List<PartInfo> partInfos;
 
     @Override

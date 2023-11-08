@@ -129,7 +129,11 @@ public class EmailSyncer {
                 shareList.push(videoInfo) ; //先将所有邮件放入栈中,邮件是从最新开始读取，但是需要按发送时间处理邮件
             }
         }
-        folder.close(false);
+        try {
+            if(folder.isOpen()) {
+                folder.close(false);
+            }
+        }catch (Exception e){}
         store.close();
 
         disposeShareList(shareList);

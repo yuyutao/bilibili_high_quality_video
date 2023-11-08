@@ -8,9 +8,10 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.Handler;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -19,16 +20,15 @@ import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.BaseExpandableListAdapter;
+import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.ExpandableListView;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-
-import com.google.android.material.internal.ViewOverlayImpl;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
     private View mViewClipShareInfo ;
     private TextView mTextViewClicpShare ;
     private int mPageId = -1 ;
+    private String mSearchText ;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -71,6 +72,27 @@ public class MainActivity extends AppCompatActivity {
         mListView.setDivider(null);
 
         update();
+
+        EditText editTextSearch = findViewById(R.id.editText_search) ;
+        editTextSearch.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                    mSearchText = s.toString() ;
+                    mPageId = -1 ;
+                    update();
+
+            }
+        });
     }
     private void checkClip(){
         ClipboardManager clipboardManager = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
@@ -85,13 +107,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if(hasFocus){
+            checkClip();
+        }
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
-        checkClip() ;
         update();
     }
     private void update(){
-        mVideoInfoList = VideoDatabase.getInstance(this).getVideos(mPageId, MAX_COUNT) ;
+        mVideoInfoList = VideoDatabase.getInstance(this).getVideos(mSearchText, mPageId, MAX_COUNT) ;
         mAdapter.notifyDataSetChanged();
     }
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -115,8 +144,7 @@ public class MainActivity extends AppCompatActivity {
     }
     private void showBilibliClip(String text){
         mViewClipShareInfo.setVisibility(View.VISIBLE);
-        String shareText = getString(R.string.share_clip_msg, text) ;
-        mTextViewClicpShare.setText(shareText);
+        mTextViewClicpShare.setText(text);
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -168,7 +196,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         videoInfo.action = VideoInfo.ACTION_DEL ;
-                        delete(videoInfo);
+                        sendVideoInfo(videoInfo);
                     }
                 }).show() ;
     }
@@ -187,14 +215,37 @@ public class MainActivity extends AppCompatActivity {
                         videoInfo.partInfos = new ArrayList<>( );
                         videoInfo.action = VideoInfo.ACTION_DEL ;
                         videoInfo.partInfos.add(partInfo) ;
-                        delete(videoInfo);
+                        sendVideoInfo(videoInfo);
+                    }
+                }).show() ;
+    }
+
+    private void showEditDialog(VideoInfo videoInfo){
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_edit,null) ;
+        TextView textViewTitle = view.findViewById(R.id.textView_title) ;
+        CheckBox checkBoxSkipable = view.findViewById(R.id.checkBox_skipable) ;
+        CheckBox checkBoxNextPlay = view.findViewById(R.id.checkBox_nextplay) ;
+        textViewTitle.setText(videoInfo.title);
+        checkBoxSkipable.setChecked(!videoInfo.skipable);
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.edit_video_title)
+                .setView(view)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.confirm, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        videoInfo.action = VideoInfo.ACTION_EDIT ;
+                        videoInfo.skipable = !checkBoxSkipable.isChecked() ;
+                        videoInfo.nextplay = checkBoxNextPlay.isChecked() ;
+                        sendVideoInfo(videoInfo) ;
                     }
                 }).show() ;
     }
 
     @SuppressLint("AutoDispose")
-    private void delete(VideoInfo videoInfo){
+    private void sendVideoInfo(VideoInfo videoInfo){
         ProgressDialog progressDialog = new ProgressDialog(this) ;
+        progressDialog.setMessage(getString(R.string.sending_message));
         progressDialog.setCancelable(false);
         Single.fromCallable(new Callable<Integer>() {
                     @Override
@@ -226,10 +277,10 @@ public class MainActivity extends AppCompatActivity {
                         String msg ;
                         switch (ret){
                             case EMAIL_ERROR_SUCCESS :
-                                msg = getString(R.string.delete_success) ;
+                                msg = getString(R.string.send_success) ;
                                 break ;
                             default:
-                                msg = getString(R.string.delete_fail, ret) ;
+                                msg = getString(R.string.send_fail, ret) ;
                                 break ;
 
                         }
@@ -295,6 +346,7 @@ public class MainActivity extends AppCompatActivity {
                 viewHolder = new ViewHolder();
                 viewHolder.mTextView = convertView.findViewById(R.id.textView_title) ;
                 viewHolder.mViewDelete = convertView.findViewById(R.id.imageView_remove) ;
+                viewHolder.mViewEdit = convertView.findViewById(R.id.imageView_edit) ;
                 convertView.setTag(viewHolder);
             }else{
                 viewHolder = (ViewHolder) convertView.getTag();
@@ -305,6 +357,13 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onClick(View v) {
                     showDeleteDialog(videoInfo);
+                }
+            });
+
+            viewHolder.mViewEdit.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    showEditDialog(videoInfo);
                 }
             });
             return convertView;
@@ -318,6 +377,7 @@ public class MainActivity extends AppCompatActivity {
                 viewHolder = new ViewHolder();
                 viewHolder.mTextView = convertView.findViewById(R.id.textView_title) ;
                 viewHolder.mViewDelete = convertView.findViewById(R.id.imageView_remove) ;
+                convertView.findViewById(R.id.imageView_edit).setVisibility(View.GONE); ;
                 convertView.setTag(viewHolder);
             }else{
                 viewHolder = (ViewHolder) convertView.getTag();
@@ -343,5 +403,6 @@ public class MainActivity extends AppCompatActivity {
     class ViewHolder {
         TextView mTextView ;
         ImageView mViewDelete ;
+        ImageView mViewEdit ;
     }
 }

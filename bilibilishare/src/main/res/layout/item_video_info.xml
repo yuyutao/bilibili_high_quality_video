@@ -21,6 +21,13 @@
             android:layout_weight="1" />
 
         <ImageView
+            android:id="@+id/imageView_edit"
+            android:layout_width="35dp"
+            android:layout_height="35dp"
+            android:layout_margin="8dp"
+            app:srcCompat="@drawable/ic_edit_white" />
+
+        <ImageView
             android:id="@+id/imageView_remove"
             android:layout_width="35dp"
             android:layout_height="35dp"

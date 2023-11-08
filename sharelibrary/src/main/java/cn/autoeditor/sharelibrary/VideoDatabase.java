@@ -6,6 +6,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Build;
+import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
@@ -31,7 +32,8 @@ public class VideoDatabase {
     public static final String KEY_CID_LIST = "cids" ;
     public static final String KEY_TITLE = "title" ;
     public static final String KEY_SKIP_ABLE = "skip_able" ;
-    public static final String KEY_PLAY_TIMES = "play_times" ;
+    public static final String KEY_NEXT_PLAY= "next_play" ;
+    public static final String KEY_LAST_TIME = "last_time" ;
     public static final String KEY_TIMESTAMP = "timestamp" ;
 
     private static VideoDatabase sInstance ;
@@ -61,6 +63,9 @@ public class VideoDatabase {
                 break ;
             case VideoInfo.ACTION_DEL :
                 delVideoInfo(videoInfo);
+                break ;
+            case VideoInfo.ACTION_EDIT :
+                editVideoInfo(videoInfo);
                 break ;
         }
     }
@@ -98,7 +103,6 @@ public class VideoDatabase {
         return new ArrayList<>(Arrays.asList( s.split(",")) ) ;
     }
     private void addVideoInfo(VideoInfo videoInfo){
-        Log.i(TAG, "addVideoInfo:"+videoInfo.bvid) ;
 
         addPartInfo(videoInfo.bvid, videoInfo.partInfos) ;
 
@@ -116,7 +120,7 @@ public class VideoDatabase {
         ContentValues values = new ContentValues();
         values.put(KEY_BVID, videoInfo.bvid);
         values.put(KEY_TITLE, videoInfo.title);
-        values.put(KEY_PLAY_TIMES, 0);
+        values.put(KEY_LAST_TIME, 0);
         values.put(KEY_SKIP_ABLE, videoInfo.skipable);
         if(cursor.moveToFirst()){
             String cids = cursor.getString(cursor.getColumnIndex(KEY_CID_LIST)) ;
@@ -184,6 +188,13 @@ public class VideoDatabase {
         }
     }
 
+    private void editVideoInfo(VideoInfo videoInfo){
+        ContentValues values = new ContentValues();
+        values.put(KEY_SKIP_ABLE, videoInfo.skipable);
+        values.put(KEY_NEXT_PLAY, videoInfo.nextplay);
+        mDataBaseHelper.getWritableDatabase().update(TABLE_VIDEO_INFO, values, String.format("%s = ?", KEY_BVID), new String[]{String.valueOf(videoInfo.bvid)}) ;
+    }
+
     private void delPartInfo(String bvid, List<PartInfo> partInfos){
         for(PartInfo partInfo:partInfos){
             mDataBaseHelper.getWritableDatabase().delete(TABLE_VIDEO_PART_INFO, String.format("%s = ? and %s = ?", KEY_BVID, KEY_CID), new String[]{bvid, partInfo.cid}) ;
@@ -199,7 +210,16 @@ public class VideoDatabase {
         mDataBaseHelper.getWritableDatabase().update(TABLE_VIDEO_PART_INFO, values, String.format("%s = ? and %s = ?", KEY_BVID, KEY_CID), new String[]{bvid, cid}) ;
     }
 
-    public List<VideoInfo> getVideos(int startId, int count){
+    public List<VideoInfo> getVideos(String keyword,int startId, int count){
+        String selection  ;
+        String[] selectionArgs ;
+        if(TextUtils.isEmpty(keyword)){
+            selection = String.format("%s > ?", KEY_ID) ;
+            selectionArgs = new String[]{String.valueOf(startId)} ;
+        }else{
+            selection = String.format("%s > ? and %s like ? ", KEY_ID, KEY_TITLE) ;
+            selectionArgs = new String[]{String.valueOf(startId),'%'+keyword+'%'} ;
+        }
         Cursor cursor = mDataBaseHelper.getReadableDatabase().query(
                 TABLE_VIDEO_INFO,
                 new String[]{
@@ -209,8 +229,8 @@ public class VideoDatabase {
                         KEY_CID_LIST,
                         KEY_SKIP_ABLE,
                 },
-                String.format("%s > ?", KEY_ID),
-                new String[]{String.valueOf(startId)},
+                selection,
+                selectionArgs,
                 null,
                 null,
                 KEY_ID,
@@ -233,7 +253,13 @@ public class VideoDatabase {
     public VideoInfo getNext(int currentId){
 
         if(currentId >= 0) {
-            mDataBaseHelper.getWritableDatabase().execSQL("UPDATE " + TABLE_VIDEO_INFO + " SET play_times = play_times + 1 WHERE _id= ?", new String[]{String.valueOf(currentId)});
+//            mDataBaseHelper.getWritableDatabase().execSQL("UPDATE " + TABLE_VIDEO_INFO + " SET play_times = play_times + 1 WHERE _id= ?", new String[]{String.valueOf(currentId)});
+
+            ContentValues values = new ContentValues();
+            values.put(KEY_LAST_TIME, System.currentTimeMillis()/1000);
+            values.put(KEY_SKIP_ABLE, 0);
+            values.put(KEY_NEXT_PLAY, 0);
+            mDataBaseHelper.getWritableDatabase().update(TABLE_VIDEO_INFO, values, String.format("%s = ?", KEY_ID), new String[]{String.valueOf(currentId)}) ;
         }
 
         Cursor cursor = mDataBaseHelper.getReadableDatabase().query(
@@ -249,7 +275,7 @@ public class VideoDatabase {
                 null,
                 null,
                 null,
-                KEY_PLAY_TIMES,
+                KEY_LAST_TIME,
                 String.valueOf(1)) ;
 
         VideoInfo videoInfo = null ;
@@ -266,6 +292,42 @@ public class VideoDatabase {
         return videoInfo ;
     }
 
+    public VideoInfo getNext(int currentId, String nextBVID){
+        if(currentId >= 0) {
+            ContentValues values = new ContentValues();
+            values.put(KEY_LAST_TIME, System.currentTimeMillis()/1000);
+            mDataBaseHelper.getWritableDatabase().update(TABLE_VIDEO_INFO, values, String.format("%s = ?", KEY_ID), new String[]{String.valueOf(currentId)}) ;
+        }
+
+        Cursor cursor = mDataBaseHelper.getReadableDatabase().query(
+                TABLE_VIDEO_INFO,
+                new String[]{
+                        KEY_ID,
+                        KEY_BVID,
+                        KEY_TITLE,
+                        KEY_CID_LIST,
+                        KEY_SKIP_ABLE,
+                },
+                String.format("%s = ?", KEY_BVID),
+                new String[]{nextBVID},
+                null,
+                null,
+                KEY_LAST_TIME,
+                String.valueOf(1)) ;
+
+        VideoInfo videoInfo = null ;
+        if(cursor.moveToFirst()){
+            videoInfo = new VideoInfo() ;
+            int id = cursor.getInt(cursor.getColumnIndex(KEY_ID)) ;
+            videoInfo.setId(id);
+            videoInfo. bvid = cursor.getString(cursor.getColumnIndex(KEY_BVID));
+            videoInfo. title = cursor.getString(cursor.getColumnIndex(KEY_TITLE)) ;
+            videoInfo. skipable = cursor.getInt(cursor.getColumnIndex(KEY_SKIP_ABLE))==1?true:false ;
+            String cidStr = cursor.getString(cursor.getColumnIndex(KEY_CID_LIST)) ;
+            videoInfo.partInfos = getPartInfos(videoInfo.bvid, cidStr) ;
+        }
+        return videoInfo ;
+    }
 
     private List<PartInfo> getPartInfos(String bvid, String cidStr){
 //        Cursor cursor = mDataBaseHelper.getReadableDatabase().query(
@@ -307,14 +369,15 @@ public class VideoDatabase {
 
     class MyDataBaseHelper  extends SQLiteOpenHelper {
 
-        private static final int DB_VERSION = 1 ;
+        private static final int DB_VERSION = 2 ;
         public static final String CREATE_TABLE_VIDEO_INFO = "create table video_info (" +
                 "_id integer primary key autoincrement, " +
                 "bvid text UNIQUE, " +
                 "title text, " +
                 "cids text, " +
                 "skip_able integer, " +
-                "play_times integer, " +
+                "next_play integer, " +
+                "last_time integer, " +
                 "timestamp integer)" ;
         public static final String CREATE_TABLE_VIDEO_PART_INFO = "create table video_part_info (" +
                 "_id integer primary key autoincrement, " +
@@ -336,7 +399,11 @@ public class VideoDatabase {
 
         @Override
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-
+            switch (oldVersion){
+                case 1:
+                    db.execSQL("ALTER TABLE video_info ADD COLUMN next_play INTEGER DEFAULT 0");
+                    break ;
+            }
         }
     }
 }

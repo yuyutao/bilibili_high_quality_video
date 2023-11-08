@@ -22,4 +22,7 @@
     <string name="hint">提示</string>
     <string name="setting_success">设置成功</string>
     <string name="skip_collection_msg">跳过当前视频合集%1$s?</string>
+    <string name="is_not_collection">不是合集视频</string>
+    <string name="cannot_skip">此视频不可跳过</string>
+    <string name="new_next_play_info">是否立即播放:%1$s</string>
 </resources>

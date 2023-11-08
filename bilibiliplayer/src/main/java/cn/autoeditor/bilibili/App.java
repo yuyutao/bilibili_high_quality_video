@@ -2,6 +2,7 @@ package cn.autoeditor.bilibili;
 
 import android.app.Application;
 
+import xyz.doikki.videoplayer.exo.ExoMediaPlayerFactory;
 import xyz.doikki.videoplayer.ijk.IjkPlayerFactory;
 import xyz.doikki.videoplayer.player.AndroidMediaPlayerFactory;
 import xyz.doikki.videoplayer.player.VideoViewConfig;
@@ -14,6 +15,7 @@ public class App extends Application {
         VideoViewManager.setConfig(VideoViewConfig.newBuilder()
                 //使用MediaPlayer解码
                 .setPlayerFactory(IjkPlayerFactory.create())
+//                .setPlayerFactory(ExoMediaPlayerFactory.create())
 //                .setPlayerFactory(AndroidMediaPlayerFactory.create())
                 .build());
     }
