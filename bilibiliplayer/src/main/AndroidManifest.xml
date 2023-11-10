@@ -32,6 +32,8 @@
             android:configChanges="orientation|keyboardHidden|screenSize"
             />
         <activity android:name="cn.autoeditor.bilibili.Settings" />
+        <activity android:name="cn.autoeditor.bilibili.LoginActivity"
+            android:theme="@style/Theme.Design.NoActionBar"/>
     </application>
 
 </manifest>

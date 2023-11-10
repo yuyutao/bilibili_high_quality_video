@@ -1,0 +1,23 @@
+com.google.zxing.client.android
+color possible_result_points
+color result_view
+color status_text
+color transparent
+color viewfinder_laser
+color viewfinder_mask
+drawable launcher_icon
+id capture_kindergarten
+id decode
+id decode_failed
+id decode_succeeded
+id preview_view
+id quit
+id restart_preview
+id return_scan_result
+id status_view
+id viewfinder_view
+layout activity_zxing_capture
+raw beep
+string app_name
+string zxing_msg_default_status
+style CaptureTheme

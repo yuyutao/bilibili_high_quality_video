@@ -257,7 +257,7 @@ public class VideoDatabase {
 
             ContentValues values = new ContentValues();
             values.put(KEY_LAST_TIME, System.currentTimeMillis()/1000);
-            values.put(KEY_SKIP_ABLE, 0);
+            values.put(KEY_SKIP_ABLE, 1);
             values.put(KEY_NEXT_PLAY, 0);
             mDataBaseHelper.getWritableDatabase().update(TABLE_VIDEO_INFO, values, String.format("%s = ?", KEY_ID), new String[]{String.valueOf(currentId)}) ;
         }

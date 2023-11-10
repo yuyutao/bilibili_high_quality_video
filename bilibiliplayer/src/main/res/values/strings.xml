@@ -25,4 +25,7 @@
     <string name="is_not_collection">不是合集视频</string>
     <string name="cannot_skip">此视频不可跳过</string>
     <string name="new_next_play_info">是否立即播放:%1$s</string>
+    <string name="scan_login">请使用哔哩哔哩客户端扫码登陆</string>
+    <string name="scaned">已扫码</string>
+    <string name="login_canceled">已失效</string>
 </resources>

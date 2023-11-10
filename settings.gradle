@@ -16,3 +16,5 @@ rootProject.name = "b站优质视频"
 include ':bilibiliplayer'
 include ':bilibilishare'
 include ':sharelibrary'
+include ':okhttp3-persistent-cookiejar'
+include ':zxinglib'

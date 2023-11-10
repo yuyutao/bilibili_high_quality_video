@@ -1,7 +1,9 @@
 package cn.autoeditor.bilibili;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
@@ -14,6 +16,9 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.net.URL;
 import java.util.ArrayDeque;
@@ -56,6 +61,11 @@ public class BilibiliPlayer extends AppCompatActivity implements BaseVideoView.O
     private static final String KEY_CURRENT_VIDEO = "current_video" ;
     private static final String KEY_CID_INDEX = "cid_index";
     private static final String KEY_CURRENT_POSITION = "position";
+
+    public static void launch(Activity from){
+        Intent intent = new Intent(from, BilibiliPlayer.class) ;
+        from.startActivity(intent);
+    }
     private VideoView mVideoView;
     StandardVideoController controller ;
     private EmailSyncer mEmailSyncer ;
@@ -112,8 +122,61 @@ public class BilibiliPlayer extends AppCompatActivity implements BaseVideoView.O
                 startNext();
             }
         });
+
+        checkLogin();
+
+
+//        Intent intent = new Intent(this, LoginActivity.class) ;
+//        startActivity(intent);
     }
 
+
+    @SuppressLint("AutoDispose")
+    private void checkLogin(){
+        Single.fromCallable(new Callable<String>() {
+                    @Override
+                    public String call() throws Exception {
+                        return BibiliVideoInfo.checkLogin() ;
+                    }
+                }).subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new SingleObserver<String>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+
+                    }
+
+                    @Override
+                    public void onSuccess(String s) {
+                        LtLog.i("checkLogin:"+s) ;
+                        try {
+                            JSONObject jsonObject = new JSONObject(s) ;
+                            int code = jsonObject.getInt("code") ;
+                            if(code != 0){
+                                Intent intent = new Intent(BilibiliPlayer.this, LoginActivity.class) ;
+                                startActivity(intent);
+                                finish();
+                                return;
+                            }
+                            JSONObject dataObj = jsonObject.getJSONObject("data") ;
+                            boolean refresh = dataObj.getBoolean("refresh") ;
+                            if(refresh){
+                                        Intent intent = new Intent(BilibiliPlayer.this, LoginActivity.class) ;
+                                        startActivity(intent);
+                                        finish();
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+
+                    }
+
+                });
+    }
 
 
     @Override
